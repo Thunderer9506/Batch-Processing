@@ -31,3 +31,22 @@ def posts():
     except Exception as e:
         print(f"An error occurred: {e}")
         return {"error": str(e)}
+
+@app.get("/posts/likes")
+def postLikes():
+    try:
+        with Session() as session:
+            stmt = select(Post)
+            result = session.scalars(stmt).all()
+
+            all_posts = [
+                {
+                    "id": post.id,
+                    "like_count": post.like_count,
+                }
+                for post in result
+            ]
+            return all_posts
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return {"error": str(e)}
