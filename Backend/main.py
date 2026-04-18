@@ -50,3 +50,18 @@ def postLikes():
     except Exception as e:
         print(f"An error occurred: {e}")
         return {"error": str(e)}
+    
+@app.post("/posts/{post_id}/like")
+def like_post(post_id: int):
+    try:
+        with Session() as session:
+            post = session.get(Post, post_id)
+            if post:
+                post.like_count += 1
+                session.commit()
+                return {"message": f"Post {post_id} liked successfully!", "like_count": post.like_count}
+            else:
+                return {"error": f"Post with id {post_id} not found."}
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return {"error": str(e)}
