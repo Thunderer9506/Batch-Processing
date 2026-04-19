@@ -1,9 +1,67 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
+import redis
+import asyncio
 from sqlalchemy import select
 
 from db import Post, Session
 
-app = FastAPI()
+r = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+def putvaluesfromredis():
+    """Synchronous function dealing with DB and Redis."""
+    with Session() as session:
+        # Grab all keys currently in Redis
+        keys = list(r.scan_iter("*"))
+        
+        if not keys:
+            return # Skip database transactions if there are no likes
+
+        for key in keys:
+            value = r.get(key)
+            if value is not None:
+                post = session.get(Post, int(key))
+                if post:
+                    print(f"Previsous like count for Post {key}: {post.like_count}")
+                    post.like_count += int(value)
+                    print(f"Post {key} liked successfully! New like count: {post.like_count}")
+                
+                # CRITICAL: Delete the key from Redis after processing
+                # so we don't count these same likes again on the next loop!
+                r.delete(key)
+                
+        session.commit()
+
+async def check_redis():
+    """Continuous background polling task."""
+    while True:
+        try:
+            # Run the synchronous blocking function in a separate thread
+            # so it doesn't freeze the FastAPI web server.
+            await asyncio.to_thread(putvaluesfromredis)
+                        
+        except Exception as e:
+            print(f"Error in Redis/DB polling: {e}")
+            
+        await asyncio.sleep(5)  # Check every 5 seconds
+
+# --- Lifespan Event Manager ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup phase: Spin up the background task
+    print("Starting background Redis poller...")
+    polling_task = asyncio.create_task(check_redis())
+    
+    yield # Let FastAPI run and serve requests
+    
+    # Shutdown phase: Cancel the polling task gracefully
+    print("Shutting down background Redis poller...")
+    polling_task.cancel()
+
+# Attach the lifespan to your FastAPI app
+app = FastAPI(lifespan=lifespan)
+
+# --- Your Endpoints Remain Unchanged ---
 
 @app.get("/")
 def read_root():
@@ -54,14 +112,11 @@ def postLikes():
 @app.post("/posts/{post_id}/like")
 def like_post(post_id: int):
     try:
-        with Session() as session:
-            post = session.get(Post, post_id)
-            if post:
-                post.like_count += 1
-                session.commit()
-                return {"message": f"Post {post_id} liked successfully!", "like_count": post.like_count}
-            else:
-                return {"error": f"Post with id {post_id} not found."}
+        if r.exists(int(post_id)):
+            r.incr(int(post_id))
+        else:
+            r.set(int(post_id), 1)
+        return {"message": f"Post {post_id} liked successfully!"}
     except Exception as e:
         print(f"An error occurred: {e}")
         return {"error": str(e)}
