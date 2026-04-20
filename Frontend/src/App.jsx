@@ -1,4 +1,4 @@
-import InstagramFeed from './InstagramFeed'
+import InstagramFeed from './components/InstagramFeed/InstagramFeed'
 
 function App() {
   return (
