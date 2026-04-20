@@ -67,7 +67,7 @@ export const likePost = async (postId) => {
   // return { success: true };
 };
 
-export const bombardLikes = async (postId, count = 1000) => {
+export const bombardLikes = async (postId, count = 1001) => {
   // In a real app, you would send multiple requests to your backend API
   console.log(`Bombarding post ${postId} with ${count} likes...`);
 
