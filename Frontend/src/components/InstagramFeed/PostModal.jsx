@@ -1,4 +1,50 @@
+import React, { useState, useEffect } from 'react';
+
 const PostModal = ({ post, onClose, onLike, onBombardLikes }) => {
+  // 1. Store the likes in local state so the modal can update independently
+  const [liveLikes, setLiveLikes] = useState(post.likes);
+
+  // 2. Sync if the parent passes down a newly updated post
+  useEffect(() => {
+    setLiveLikes(post.likes);
+  }, [post.likes]);
+
+  // 3. The 5-second Polling Logic
+  useEffect(() => {
+    const fetchLiveLikes = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/posts/likes');
+        
+        if (response.ok) {
+          const liveLikesData = await response.json();
+          
+          // Find the specific update for the post currently open in the modal
+          const liveUpdate = liveLikesData.find((p) => p.id === post.id);
+          
+          if (liveUpdate) {
+            setLiveLikes(liveUpdate.like_count);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch live likes:", error);
+      }
+    };
+
+    const intervalId = setInterval(fetchLiveLikes, 5000);
+    return () => clearInterval(intervalId);
+  }, [post.id]); // Re-run effect if the post ID changes
+
+  // 4. Optimistic UI Wrappers
+  const handleLikeClick = () => {
+    setLiveLikes(prev => prev + 1); // Instantly update UI
+    onLike(post.id);                // Send request to backend
+  };
+
+  const handleBombardClick = () => {
+    setLiveLikes(prev => prev + 1000); // Instantly update UI
+    onBombardLikes(post.id);           // Send request to backend
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -29,12 +75,14 @@ const PostModal = ({ post, onClose, onLike, onBombardLikes }) => {
 
             <div className="mt-auto">
               <div className="flex items-center justify-between mb-6">
-                <span className="text-lg font-bold">{post.likes} likes</span>
+                {/* Replaced static post.likes with liveLikes state */}
+                <span className="text-lg font-bold">{liveLikes} likes</span>
               </div>
 
               <div className="flex flex-col space-y-4">
+                {/* Switched to the optimistic handleLikeClick */}
                 <button
-                  onClick={() => onLike(post.id)}
+                  onClick={handleLikeClick}
                   className="flex items-center justify-center space-x-2 bg-pink-600 hover:bg-pink-700 py-3 rounded-lg transition"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -43,8 +91,9 @@ const PostModal = ({ post, onClose, onLike, onBombardLikes }) => {
                   <span>Like</span>
                 </button>
 
+                {/* Switched to the optimistic handleBombardClick */}
                 <button
-                  onClick={() => onBombardLikes(post.id)}
+                  onClick={handleBombardClick}
                   className="flex items-center justify-center space-x-2 bg-red-600 hover:bg-red-700 py-3 rounded-lg transition"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
