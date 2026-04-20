@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import redis
 import asyncio
 from sqlalchemy import select
@@ -60,6 +61,19 @@ async def lifespan(app: FastAPI):
 
 # Attach the lifespan to your FastAPI app
 app = FastAPI(lifespan=lifespan)
+
+origins = [
+    "http://localhost:5173",
+    "https://example.com",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,            # Allows specific origins
+    allow_credentials=True,         # Allows cookies/auth headers
+    allow_methods=["*"],             # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],             # Allows all headers
+)
 
 # --- Your Endpoints Remain Unchanged ---
 
