@@ -1,27 +1,97 @@
-in this project i tried showing how instagram handle millions of request of likes on the server by using batch processing, in real life they use a mix of kafka and redis but in this project i only used redis as a caching service
+# Batch Processing for Instagram-like Like System
 
-what is batch processing
-so basically before performing any action you initially collect some stuff before then so that action. for ex delivery boy dont deliver boxes one by one(by this i mean its not like he will go to ware house took one product and deliver it and do it again and again) but he take multiple deliverables and deliver them to their desire location
+In this project, I demonstrate how Instagram handles millions of like requests on the server using batch processing. While in real life Instagram uses a mix of Kafka and Redis, this project focuses solely on Redis as a caching service to showcase the core concept.
+
+![frontend_page](Demo.png)
+
+## What is Batch Processing?
+
+Batch processing is a method where you initially collect multiple items before performing an action on them all at once. 
+
+For example, a delivery boy doesn't deliver boxes one by one (going to the warehouse, picking one product, delivering it, and repeating). Instead, he collects multiple deliveries and delivers them all to their respective locations in batches.
+
+## Project Overview
+
+This project simulates how social media platforms efficiently handle high volumes of user interactions by implementing batch processing to reduce database load.
+
+### Components
+
+The project consists of two main parts:
+1. **Backend** - Handles the logic and data processing
+2. **Frontend** - Provides the user interface
+
+### Frontend Features
+
+The frontend includes two buttons:
+- Normal like button
+- Bombard likes button (sends 1000 likes using a for loop)
+
+Additionally, there's a polling system that updates each post every 5 seconds to reflect any changes in like counts.
+
+### Backend Architecture
+
+The backend implements Redis as a caching layer (running on Docker) to store likes temporarily. Instead of updating the database with each individual like, the backend runs a polling function that checks Redis every 5 seconds. If likes are found in the cache, they are transferred to the database all at once, preventing thousands of individual database requests that could cause issues in a real production environment.
+
+### Backend Routes
+
+1. `GET /posts` - Sends all posts to the frontend
+2. `GET /posts/likes` - Sends the count of likes for each post to support the frontend polling system
+3. `POST /posts/{post_id}/likes` - Updates the like count for a specific post by 1 in Redis (not in the actual database)
 
 
-so this project is divided into 2 parts
-1. backend
-2. frontend
+## Manual Installation (Alternative)
 
-there are two buttons on the frontend one is for normal like and another one is to bombard 1000 likes at the backend(which is done using a for loop ) and there is a polling system where every post gets updated every 5 sec to see is there any change in likes or not
+### Backend Setup
 
-now lets look at the backend the likes route uses redis as a caching service(running on docker) and all the likes are getting stored in there, the backend is running a redis polling function where backend checks every 5 sec if there exist any likes left in the cache if yes then it will transfer those likes on to the db all at once saving db from thousands of requests which might cause some issue in real production
+1. Navigate to the Backend directory:
+   ```
+   cd Backend
+   ```
 
-backend consist of these routes
-1. /posts : to send all post to the frontend
-2. /posts/likes : to send count of likes of each posts to the frontend for polling system in frontend
-3. /posts/{post_id}/likes : update the like of that post by 1 in redis and not in actual db
+2. Create a virtual environment:
+   ```
+   python -m venv venv
+   ```
 
+3. Activate the virtual environment:
+   - On Windows: `venv\Scripts\activate`
+   - On macOS/Linux: `source venv/bin/activate`
 
-sections in this post
-1. heading and subheading
-2. image of the project
-3. description which i have written above may include subsection like backend and frontend to explain each respectively
-4. structure of both frontend and backend
-5. how to install it in your local machine(prerequiste is docker)
-6. opinon are always open, if you find something that can be improved you are always welcomed
+4. Install the required packages:
+   ```
+   pip install -r requirements.txt
+   ```
+
+5. Start Redis server (requires Docker):
+   ```
+   docker run -d -p 6379:6379 redis:7-alpine
+   ```
+
+6. Run the backend:
+   ```
+   python db.py  # Initialize database with sample data
+   uvicorn main:app --reload
+   ```
+
+### Frontend Setup
+
+1. Navigate to the Frontend directory:
+   ```
+   cd Frontend
+   ```
+
+2. Install dependencies:
+   ```
+   npm install
+   ```
+
+3. Start the development server:
+   ```
+   npm run dev
+   ```
+
+4. Open your browser and visit http://localhost:5173
+
+## Contributing
+
+Opinions are always welcome! If you find something that can be improved, please feel free to contribute or share your suggestions.
