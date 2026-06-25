@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import redis
 import asyncio
@@ -8,6 +8,14 @@ from sqlalchemy import select
 from db import Post, Session
 
 r = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+# Simple API‑key based authentication (replace with real auth in production)
+API_KEY = "CHANGE_ME_TO_SECURE_KEY"
+
+def verify_api_key(x_api_key: str = Header(...)):
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return True
 
 def putvaluesfromredis():
     """Synchronous function dealing with DB and Redis."""
@@ -124,7 +132,7 @@ def postLikes():
         return {"error": str(e)}
     
 @app.post("/posts/{post_id}/like")
-def like_post(post_id: int):
+def like_post(post_id: int, authorized: bool = Depends(verify_api_key)):
     try:
         if r.exists(int(post_id)):
             r.incr(int(post_id))
