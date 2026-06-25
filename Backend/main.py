@@ -19,16 +19,29 @@ def putvaluesfromredis():
             return # Skip database transactions if there are no likes
 
         for key in keys:
+            # Ensure the key is a valid integer post ID before processing
+            if not str(key).isdigit():
+                # Skip keys that are not numeric to avoid unintended DB updates
+                continue
             value = r.get(key)
-            if value is not None:
-                post = session.get(Post, int(key))
-                if post:
-                    print(f"Previsous like count for Post {key}: {post.like_count}")
-                    post.like_count += int(value)
-                    print(f"Post {key} liked successfully! New like count: {post.like_count}")
-                
-                # CRITICAL: Delete the key from Redis after processing
-                # so we don't count these same likes again on the next loop!
+            if value is None:
+                continue
+            # Validate that the stored value is an integer (like count)
+            try:
+                increment = int(value)
+            except ValueError:
+                # Invalid like count stored; remove the key to prevent repeated errors
+                r.delete(key)
+                continue
+            post = session.get(Post, int(key))
+            if post:
+                print(f"Previous like count for Post {key}: {post.like_count}")
+                post.like_count += increment
+                print(f"Post {key} liked successfully! New like count: {post.like_count}")
+                # Delete the key after successful processing
+                r.delete(key)
+            else:
+                # No matching post; clean up the stray key
                 r.delete(key)
                 
         session.commit()
