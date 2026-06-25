@@ -1,13 +1,17 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 import redis
 import asyncio
+import os
 from sqlalchemy import select
 
 from db import Post, Session
 
 r = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+# Simple API key authentication (replace with real auth in production)
+API_KEY = os.getenv("API_KEY", "default-insecure-key")
 
 def putvaluesfromredis():
     """Synchronous function dealing with DB and Redis."""
@@ -21,7 +25,13 @@ def putvaluesfromredis():
         for key in keys:
             value = r.get(key)
             if value is not None:
-                post = session.get(Post, int(key))
+                try:
+                    post_id = int(key)
+                except ValueError:
+                    # Skip malformed keys
+                    r.delete(key)
+                    continue
+                post = session.get(Post, post_id)
                 if post:
                     print(f"Previsous like count for Post {key}: {post.like_count}")
                     post.like_count += int(value)
@@ -124,12 +134,15 @@ def postLikes():
         return {"error": str(e)}
     
 @app.post("/posts/{post_id}/like")
-def like_post(post_id: int):
+def like_post(post_id: int, x_api_key: str = Header(..., alias="X-API-Key")):
+    # Simple API key check
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API Key")
     try:
-        if r.exists(int(post_id)):
-            r.incr(int(post_id))
+        if r.exists(str(post_id)):
+            r.incr(str(post_id))
         else:
-            r.set(int(post_id), 1)
+            r.set(str(post_id), 1)
         return {"message": f"Post {post_id} liked successfully!"}
     except Exception as e:
         print(f"An error occurred: {e}")
