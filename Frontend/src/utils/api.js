@@ -1,8 +1,11 @@
 // API utility functions
 
+// Base URL for the backend API. Use HTTPS and allow overriding via environment variable.
+const API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://localhost:8000';
+
 export const fetchPosts = async () => {
   // In a real app, you would fetch from your backend API
-  const response = await fetch('http://localhost:8000/posts');
+  const response = await fetch(`${API_BASE}/posts`);
   const rawData = await response.json();
   console.log('Fetched posts:', rawData);
 
@@ -24,42 +27,14 @@ export const fetchPosts = async () => {
   //     caption: 'Beautiful sunset drive through the mountains 🌅 #carlife #mountainroads',
   //     likes: 245,
   //   },
-  //   {
-  //     id: 2,
-  //     imageUrl: 'https://images.unsplash.com/photo-1543672343-5b3ceb0a0013?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80',
-  //     caption: 'Classic beauty restored to perfection ✨ #classiccar #restoration',
-  //     likes: 189,
-  //   },
-  //   {
-  //     id: 3,
-  //     imageUrl: 'https://images.unsplash.com/photo-1544003484-3cd7bfa514f2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80',
-  //     caption: 'Weekend racing vibes 🏁 #racing #speed',
-  //     likes: 321,
-  //   },
-  //   {
-  //     id: 4,
-  //     imageUrl: 'https://images.unsplash.com/photo-1541899481282-d53b200c8f65?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80',
-  //     caption: 'Luxury redefined 🏎️ #luxurycar #supercars',
-  //     likes: 456,
-  //   },
-  //   {
-  //     id: 5,
-  //     imageUrl: 'https://images.unsplash.com/photo-1544077880-ef7a0f2a0fb4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80',
-  //     caption: 'Offroad adventures await ⛰️ #offroad #adventure',
-  //     likes: 278,
-  //   },
-  //   {
-  //     id: 6,
-  //     imageUrl: 'https://images.unsplash.com/photo-1545389336-cf090694435e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80',
-  //     caption: 'Electric future is here 🔋 #electriccars #futuretech',
-  //     likes: 389,
-  //   },
+  //   // ... other mock posts ...
   // ];
 };
 
 export const likePost = async (postId) => {
   // In a real app, you would send a request to your backend API
-  const response = await fetch(`http://localhost:8000/posts/${postId}/like`, { method: 'POST' });
+  const safePostId = encodeURIComponent(postId);
+  const response = await fetch(`${API_BASE}/posts/${safePostId}/like`, { method: 'POST' });
   console.log(`Liked post ${postId}`);
 
   return response.json();
