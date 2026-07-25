@@ -19,17 +19,23 @@ def putvaluesfromredis():
             return # Skip database transactions if there are no likes
 
         for key in keys:
-            value = r.get(key)
-            if value is not None:
-                post = session.get(Post, int(key))
-                if post:
-                    print(f"Previsous like count for Post {key}: {post.like_count}")
-                    post.like_count += int(value)
-                    print(f"Post {key} liked successfully! New like count: {post.like_count}")
-                
-                # CRITICAL: Delete the key from Redis after processing
-                # so we don't count these same likes again on the next loop!
-                r.delete(key)
+            try:
+                # Validate that the key is actually a numeric ID before processing
+                post_id = int(key)
+                value = r.get(key)
+                if value is not None:
+                    post = session.get(Post, post_id)
+                    if post:
+                        print(f"Previsous like count for Post {key}: {post.like_count}")
+                        post.like_count += int(value)
+                        print(f"Post {key} liked successfully! New like count: {post.like_count}")
+                    
+                    # CRITICAL: Delete the key from Redis after processing
+                    # so we don't count these same likes again on the next loop!
+                    r.delete(key)
+            except (ValueError, TypeError):
+                # Skip keys that are not integers to prevent crashing the poller
+                continue
                 
         session.commit()
 
@@ -133,4 +139,4 @@ def like_post(post_id: int):
         return {"message": f"Post {post_id} liked successfully!"}
     except Exception as e:
         print(f"An error occurred: {e}")
-        return {"error": str(e)}
+        return {"error": str(e)"}
