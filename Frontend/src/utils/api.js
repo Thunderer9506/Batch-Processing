@@ -66,22 +66,3 @@ export const likePost = async (postId) => {
 
   // return { success: true };
 };
-
-export const bombardLikes = async (postId, count = 1001) => {
-  // In a real app, you would send multiple requests to your backend API
-  console.log(`Bombarding post ${postId} with ${count} likes...`);
-
-  // Simulate the requests
-  for (let i = 0; i < count; i++) {
-    // Simulate API request
-    await likePost(postId);
-
-    // Add a small delay to prevent freezing the UI
-    if (i % 100 === 0) {
-      await new Promise(resolve => setTimeout(resolve, 1));
-    }
-  }
-
-  console.log(`Finished bombarding post ${postId} with ${count} likes`);
-  return { success: true };
-};
